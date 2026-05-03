@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Odaklan</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
@@ -124,7 +124,7 @@
             z-index: 100;
         }
 
-        /* Özel Bildirim (Modal) Tasarımı */
+        /* Modal Tasarımı */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -179,6 +179,11 @@
             border-bottom: 2px solid #333;
             margin-bottom: 15px;
         }
+        .warning-text {
+            font-size: 11px;
+            color: #eb5757;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -232,6 +237,7 @@
             <h2 id="export-date">Tarih</h2>
             <h3>Günlük Çalışma Raporu</h3>
             <p><strong>Toplam Süre: <span id="export-total">00:00:00</span></strong></p>
+            <div id="export-limit-warning" class="warning-text"></div>
         </div>
         <table style="width:100%; border: 1px solid #333;">
             <thead>
@@ -250,19 +256,20 @@
         let isRunning = localStorage.getItem('isRunning') === 'true';
         let records = JSON.parse(localStorage.getItem('records')) || [];
         
+        // Zaman ölçümü için mutlak referans noktası
+        let startTime = parseInt(localStorage.getItem('startTime')) || null;
+
         const display = document.getElementById('time-display');
         const totalDisplay = document.getElementById('total-time-display');
         const taskInput = document.getElementById('task-input');
         const visibleTableBody = document.getElementById('visible-table-body');
 
-        // Modal Elementleri
         const modalOverlay = document.getElementById('custom-modal');
         const modalMessage = document.getElementById('modal-message');
         const btnCancel = document.getElementById('modal-btn-cancel');
         const btnConfirm = document.getElementById('modal-btn-confirm');
         let currentConfirmAction = null;
 
-        // Modal Gösterme Fonksiyonu
         function showModal(message, type, actionCallback) {
             modalMessage.textContent = message;
             modalOverlay.style.display = 'flex';
@@ -279,7 +286,6 @@
             }
         }
 
-        // Modal Kapatma Fonksiyonu
         function closeModal() {
             modalOverlay.style.display = 'none';
             currentConfirmAction = null;
@@ -308,29 +314,49 @@
             renderTable();
         }
 
+        // Depolama Kotası Koruma Mekanizması
         function saveData() {
-            localStorage.setItem('elapsedSeconds', elapsedSeconds);
-            localStorage.setItem('isRunning', isRunning);
-            localStorage.setItem('records', JSON.stringify(records));
-            localStorage.setItem('lastTimestamp', Date.now());
+            try {
+                localStorage.setItem('elapsedSeconds', elapsedSeconds);
+                localStorage.setItem('isRunning', isRunning);
+                localStorage.setItem('records', JSON.stringify(records));
+                if (startTime) {
+                    localStorage.setItem('startTime', startTime);
+                } else {
+                    localStorage.removeItem('startTime');
+                }
+            } catch (error) {
+                if (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+                    showModal("Depolama alanı sınırına ulaşıldı. Eski kayıtların %20'si silinerek yer açılıyor.", "alert");
+                    // Eski kayıtları silerek yer aç
+                    const silinecekMiktar = Math.max(1, Math.floor(records.length * 0.2));
+                    records = records.slice(silinecekMiktar);
+                    saveData(); // Rotasyon sonrası tekrar dene
+                } else {
+                    console.error("Veri kaydetme hatası:", error);
+                }
+            }
         }
 
         function initTimer() {
             if (isRunning) {
-                const lastTimestamp = parseInt(localStorage.getItem('lastTimestamp'));
-                if (lastTimestamp) {
-                    const gap = Math.floor((Date.now() - lastTimestamp) / 1000);
-                    elapsedSeconds += gap;
+                if (!startTime) {
+                    startTime = Date.now() - (elapsedSeconds * 1000);
                 }
                 startTimerLogic();
             }
             updateUI();
         }
 
+        // Mutlak Zaman Ölçümü (Arka plan sekmelerinde doğru çalışması için)
         function startTimerLogic() {
+            if (!startTime) {
+                startTime = Date.now() - (elapsedSeconds * 1000);
+            }
+            
             clearInterval(timerInterval);
             timerInterval = setInterval(() => {
-                elapsedSeconds++;
+                elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
                 display.textContent = formatTime(elapsedSeconds);
                 saveData();
             }, 1000);
@@ -339,6 +365,7 @@
         document.getElementById('btn-start').addEventListener('click', () => {
             if (!isRunning) {
                 isRunning = true;
+                startTime = Date.now() - (elapsedSeconds * 1000);
                 startTimerLogic();
                 saveData();
             }
@@ -347,6 +374,7 @@
         document.getElementById('btn-pause').addEventListener('click', () => {
             isRunning = false;
             clearInterval(timerInterval);
+            startTime = null; // Bekletildiğinde referans zamanı sıfırlanır
             saveData();
         });
 
@@ -354,6 +382,7 @@
             showModal("Sayacı sıfırlamak istediğinize emin misiniz?", "confirm", () => {
                 elapsedSeconds = 0;
                 isRunning = false;
+                startTime = null;
                 clearInterval(timerInterval);
                 updateUI();
                 saveData();
@@ -371,9 +400,9 @@
                 return;
             }
 
-            // Sayacı durdurma ve sıfırlama işlemi eklendi
             isRunning = false;
             clearInterval(timerInterval);
+            startTime = null;
 
             records.push({
                 id: Date.now(),
@@ -388,18 +417,32 @@
             saveData();
         });
 
+        // XSS Korumalı Tablo Render İşlemi (DOM elementleri kullanılarak)
         function renderTable() {
             visibleTableBody.innerHTML = '';
             const lastFive = records.slice(-5).reverse();
             
             lastFive.forEach((record) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${record.name}</td>
-                    <td>${record.duration}</td>
-                    <td><button class="delete-btn" onclick="deleteRecord(${record.id})">X</button></td>
-                `;
-                visibleTableBody.appendChild(row);
+                const tr = document.createElement('tr');
+                
+                const tdName = document.createElement('td');
+                tdName.textContent = record.name; // Güvenli metin ekleme
+                
+                const tdDuration = document.createElement('td');
+                tdDuration.textContent = record.duration;
+                
+                const tdAction = document.createElement('td');
+                const btn = document.createElement('button');
+                btn.className = 'delete-btn';
+                btn.textContent = 'X';
+                btn.onclick = () => deleteRecord(record.id);
+                tdAction.appendChild(btn);
+
+                tr.appendChild(tdName);
+                tr.appendChild(tdDuration);
+                tr.appendChild(tdAction);
+
+                visibleTableBody.appendChild(tr);
             });
         }
 
@@ -411,6 +454,7 @@
             });
         };
 
+        // Görüntü Dışa Aktarımı İşlemi
         document.getElementById('btn-summary').addEventListener('click', () => {
             if (records.length === 0) {
                 showModal("Henüz kaydedilmiş bir çalışma bulunmamaktadır.", "alert");
@@ -426,18 +470,46 @@
             
             const exportTable = document.getElementById('export-table-body');
             exportTable.innerHTML = '';
-            records.forEach(r => {
-                const row = document.createElement('tr');
-                row.innerHTML = `<td style="border:1px solid #333;padding:5px">${r.name}</td><td style="border:1px solid #333;padding:5px">${r.duration}</td>`;
-                exportTable.appendChild(row);
+            
+            // Performans (RAM/Canvas boyutu) koruması için sadece son 100 kaydı al
+            const exportRecords = records.slice(-100);
+            const warningEl = document.getElementById('export-limit-warning');
+            
+            if (records.length > 100) {
+                warningEl.textContent = "* Görüntü performansı sınırları nedeniyle tablo sadece son 100 kaydı içermektedir.";
+            } else {
+                warningEl.textContent = "";
+            }
+
+            // XSS korumalı export tablosu oluşturma
+            exportRecords.forEach(r => {
+                const tr = document.createElement('tr');
+                
+                const tdName = document.createElement('td');
+                tdName.style.border = '1px solid #333';
+                tdName.style.padding = '5px';
+                tdName.textContent = r.name;
+                
+                const tdDuration = document.createElement('td');
+                tdDuration.style.border = '1px solid #333';
+                tdDuration.style.padding = '5px';
+                tdDuration.textContent = r.duration;
+                
+                tr.appendChild(tdName);
+                tr.appendChild(tdDuration);
+                exportTable.appendChild(tr);
             });
 
             const target = document.getElementById('export-container');
+            
             html2canvas(target).then(canvas => {
                 const link = document.createElement('a');
                 link.download = `calisma-${tarihStr}.png`;
-                link.href = canvas.toDataURL();
+                link.href = canvas.toDataURL('image/png');
                 link.click();
+            }).catch(error => {
+                showModal("Görüntü oluşturulurken bellek (RAM) veya teknik bir hata oluştu.", "alert");
+                console.error("html2canvas hatası:", error);
             });
         });
 
