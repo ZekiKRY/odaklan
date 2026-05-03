@@ -1,1 +1,306 @@
-/**/
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Çalışma Takip Kronometresi</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f7f9fc;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 50px;
+            margin: 0;
+        }
+
+        .app-container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+        }
+
+        .timer-display {
+            font-size: 3.5rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            font-variant-numeric: tabular-nums;
+            color: #2c3e50;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        button {
+            padding: 10px 15px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            color: #fff;
+        }
+
+        .btn-start { background-color: #27ae60; }
+        .btn-start:hover { background-color: #219653; }
+        
+        .btn-pause { background-color: #f2994a; }
+        .btn-pause:hover { background-color: #e2893a; }
+
+        .btn-save { background-color: #2d9cdb; }
+        .btn-save:hover { background-color: #2284bd; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            border-bottom: 1px solid #eee;
+            padding: 12px 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .summary-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background-color: #8e44ad;
+            padding: 15px 25px;
+            font-size: 1.1rem;
+            border-radius: 30px;
+            box-shadow: 0 4px 15px rgba(142, 68, 173, 0.4);
+            z-index: 1000;
+        }
+
+        .summary-btn:hover { background-color: #732d91; }
+
+        /* Arka planda tam tabloyu tutmak ve resmini çekmek için kullanılan gizli alan */
+        #export-container {
+            position: absolute;
+            left: -9999px;
+            top: 0;
+            background-color: white;
+            padding: 40px;
+            width: 600px;
+            border: 2px solid #333;
+        }
+        
+        #export-container h2 {
+            text-align: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+        
+        #export-container table th, #export-container table td {
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <div class="timer-display" id="time-display">00:00:00</div>
+        
+        <div class="controls">
+            <button class="btn-start" id="btn-start">Başlat</button>
+            <button class="btn-pause" id="btn-pause">Duraklat</button>
+        </div>
+
+        <div class="input-group">
+            <input type="text" id="task-input" placeholder="Ders veya konu adı girin...">
+            <button class="btn-save" id="btn-save">Kaydet</button>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Ders / Konu Adı</th>
+                    <th>Çalışma Süresi</th>
+                </tr>
+            </thead>
+            <tbody id="visible-table-body">
+                </tbody>
+        </table>
+    </div>
+
+    <button class="summary-btn" id="btn-summary">Günün Özeti</button>
+
+    <div id="export-container">
+        <h2>Çalışma Özeti</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Sıra</th>
+                    <th>Ders / Konu Adı</th>
+                    <th>Çalışma Süresi</th>
+                </tr>
+            </thead>
+            <tbody id="export-table-body">
+                </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Durum Değişkenleri
+        let timerInterval = null;
+        let elapsedSeconds = 0;
+        let isRunning = false;
+        
+        // Tüm kayıtların tutulduğu asıl veri dizisi
+        const records = [];
+
+        // DOM Elementleri
+        const display = document.getElementById('time-display');
+        const taskInput = document.getElementById('task-input');
+        const visibleTableBody = document.getElementById('visible-table-body');
+        const exportTableBody = document.getElementById('export-table-body');
+
+        // Zamanı HH:MM:SS formatına çeviren yardımcı fonksiyon
+        function formatTime(seconds) {
+            const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
+            const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+            const s = String(seconds % 60).padStart(2, '0');
+            return `${h}:${m}:${s}`;
+        }
+
+        function updateDisplay() {
+            display.textContent = formatTime(elapsedSeconds);
+        }
+
+        // Kronometre Kontrolleri
+        document.getElementById('btn-start').addEventListener('click', () => {
+            if (!isRunning) {
+                isRunning = true;
+                timerInterval = setInterval(() => {
+                    elapsedSeconds++;
+                    updateDisplay();
+                }, 1000);
+            }
+        });
+
+        document.getElementById('btn-pause').addEventListener('click', () => {
+            if (isRunning) {
+                isRunning = false;
+                clearInterval(timerInterval);
+            }
+        });
+
+        // Kaydetme İşlemi
+        document.getElementById('btn-save').addEventListener('click', () => {
+            const taskName = taskInput.value.trim();
+            
+            if (taskName === "") {
+                alert("Lütfen bir ders veya konu adı giriniz.");
+                return;
+            }
+            if (elapsedSeconds === 0) {
+                alert("Kaydedilecek süre 0 olamaz. Lütfen kronometreyi başlatın.");
+                return;
+            }
+
+            // Arka plandaki diziye ekleme işlemi
+            records.push({
+                name: taskName,
+                duration: formatTime(elapsedSeconds)
+            });
+
+            // Görünen tabloyu (maks. 5 satır) güncelle
+            renderVisibleTable();
+
+            // Sayacı sıfırlama işlemleri
+            isRunning = false;
+            clearInterval(timerInterval);
+            elapsedSeconds = 0;
+            updateDisplay();
+            taskInput.value = '';
+        });
+
+        // Ekranda görünen 5 satırlık tabloyu güncelleme
+        function renderVisibleTable() {
+            visibleTableBody.innerHTML = '';
+            
+            // Veri yapısının sadece son 5 elemanını alma
+            const lastFiveRecords = records.slice(-5);
+            
+            lastFiveRecords.forEach(record => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${record.name}</td>
+                    <td>${record.duration}</td>
+                `;
+                visibleTableBody.appendChild(row);
+            });
+        }
+
+        // Günün Özeti (Resim olarak indirme) İşlemi
+        document.getElementById('btn-summary').addEventListener('click', () => {
+            if (records.length === 0) {
+                alert("Henüz kaydedilmiş bir çalışma bulunmamaktadır.");
+                return;
+            }
+
+            // Gizli export tablosunu tüm kayıtlar ile doldurma
+            exportTableBody.innerHTML = '';
+            records.forEach((record, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${record.name}</td>
+                    <td>${record.duration}</td>
+                `;
+                exportTableBody.appendChild(row);
+            });
+
+            const exportContainer = document.getElementById('export-container');
+
+            // html2canvas ile DOM elementini canvas (resim) formatına dönüştürme işlemi
+            html2canvas(exportContainer).then(canvas => {
+                // Canvas verisini PNG formatında veri URL'sine çevirme
+                const imgData = canvas.toDataURL('image/png');
+                
+                // İndirmeyi tetikleyecek sanal link oluşturma
+                const downloadLink = document.createElement('a');
+                downloadLink.href = imgData;
+                downloadLink.download = 'gunun_ozeti.png';
+                
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+            }).catch(error => {
+                console.error("Resim oluşturma işlemi başarısız oldu:", error);
+                alert("Özet oluşturulurken teknik bir hata meydana geldi.");
+            });
+        });
+    </script>
+</body>
+</html>
+
