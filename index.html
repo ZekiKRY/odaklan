@@ -2,189 +2,295 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Çalışma Takip Kronometresi</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Odaklan</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
+        * {
+            box-sizing: border-box;
+        }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f7f9fc;
+            background-color: #f0f2f5;
             color: #333;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding-top: 50px;
+            padding: 20px 10px;
             margin: 0;
+            overflow-x: hidden;
         }
 
         .app-container {
             background-color: #fff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
             width: 100%;
-            max-width: 450px;
+            max-width: 500px;
             text-align: center;
         }
 
-        .timer-display {
-            font-size: 3.5rem;
+        .total-info {
+            background: #e8f4fd;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
             font-weight: bold;
-            margin-bottom: 20px;
+            color: #2d9cdb;
+        }
+
+        .timer-display {
+            font-size: clamp(2.5rem, 10vw, 3.5rem);
+            font-weight: bold;
+            margin-bottom: 15px;
             font-variant-numeric: tabular-nums;
             color: #2c3e50;
         }
 
         .controls {
-            margin-bottom: 20px;
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
         }
 
         .input-group {
             display: flex;
-            gap: 10px;
-            margin-bottom: 25px;
+            gap: 8px;
+            margin-bottom: 20px;
         }
 
         input[type="text"] {
             flex: 1;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 1rem;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
         }
 
         button {
             padding: 10px 15px;
-            font-size: 1rem;
+            font-size: 14px;
             border: none;
-            border-radius: 5px;
+            border-radius: 6px;
             cursor: pointer;
-            transition: background-color 0.2s;
             color: #fff;
+            transition: opacity 0.2s;
         }
 
-        .btn-start { background-color: #27ae60; }
-        .btn-start:hover { background-color: #219653; }
-        
-        .btn-pause { background-color: #f2994a; }
-        .btn-pause:hover { background-color: #e2893a; }
+        button:active { opacity: 0.7; }
 
+        .btn-start { background-color: #27ae60; }
+        .btn-pause { background-color: #f2994a; }
+        .btn-reset { background-color: #95a5a6; }
         .btn-save { background-color: #2d9cdb; }
-        .btn-save:hover { background-color: #2284bd; }
+
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+        }
 
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
+            font-size: 14px;
         }
 
         th, td {
             border-bottom: 1px solid #eee;
-            padding: 12px 8px;
+            padding: 10px 5px;
             text-align: left;
         }
 
-        th {
-            background-color: #f8f9fa;
-            font-weight: 600;
+        .delete-btn {
+            background-color: #eb5757;
+            padding: 5px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 12px;
         }
 
         .summary-btn {
             position: fixed;
-            bottom: 30px;
-            right: 30px;
+            bottom: 20px;
+            right: 20px;
             background-color: #8e44ad;
-            padding: 15px 25px;
-            font-size: 1.1rem;
+            padding: 12px 20px;
             border-radius: 30px;
-            box-shadow: 0 4px 15px rgba(142, 68, 173, 0.4);
-            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 100;
         }
 
-        .summary-btn:hover { background-color: #732d91; }
+        /* Özel Bildirim (Modal) Tasarımı */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        .modal-content {
+            background: #fff;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 320px;
+            width: 90%;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+        }
+        .modal-message {
+            margin-bottom: 20px;
+            font-size: 16px;
+            color: #333;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .btn-modal {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            color: #fff;
+            font-size: 14px;
+        }
+        .btn-cancel { background-color: #95a5a6; }
+        .btn-confirm { background-color: #eb5757; }
+        .btn-ok { background-color: #2d9cdb; }
 
-        /* Arka planda tam tabloyu tutmak ve resmini çekmek için kullanılan gizli alan */
+        /* Export Tasarımı */
         #export-container {
             position: absolute;
             left: -9999px;
             top: 0;
             background-color: white;
-            padding: 40px;
-            width: 600px;
-            border: 2px solid #333;
+            padding: 30px;
+            width: 500px;
         }
-        
-        #export-container h2 {
+        .export-header {
             text-align: center;
             border-bottom: 2px solid #333;
-            padding-bottom: 10px;
-        }
-        
-        #export-container table th, #export-container table td {
-            border: 1px solid #ccc;
+            margin-bottom: 15px;
         }
     </style>
 </head>
 <body>
 
     <div class="app-container">
+        <div class="total-info">
+            Toplam Çalışma: <span id="total-time-display">00:00:00</span>
+        </div>
+
         <div class="timer-display" id="time-display">00:00:00</div>
         
         <div class="controls">
             <button class="btn-start" id="btn-start">Başlat</button>
-            <button class="btn-pause" id="btn-pause">Duraklat</button>
+            <button class="btn-pause" id="btn-pause">Durdur</button>
+            <button class="btn-reset" id="btn-reset">Sıfırla</button>
         </div>
 
         <div class="input-group">
-            <input type="text" id="task-input" placeholder="Ders veya konu adı girin...">
+            <input type="text" id="task-input" placeholder="Konu başlığı...">
             <button class="btn-save" id="btn-save">Kaydet</button>
         </div>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>Ders / Konu Adı</th>
-                    <th>Çalışma Süresi</th>
-                </tr>
-            </thead>
-            <tbody id="visible-table-body">
-                </tbody>
-        </table>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ders/Konu</th>
+                        <th>Süre</th>
+                        <th style="width:40px">İşlem</th>
+                    </tr>
+                </thead>
+                <tbody id="visible-table-body"></tbody>
+            </table>
+        </div>
     </div>
 
     <button class="summary-btn" id="btn-summary">Günün Özeti</button>
 
+    <div id="custom-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div id="modal-message" class="modal-message">Uyarı Metni</div>
+            <div class="modal-buttons">
+                <button id="modal-btn-cancel" class="btn-modal btn-cancel">Vazgeç</button>
+                <button id="modal-btn-confirm" class="btn-modal"></button>
+            </div>
+        </div>
+    </div>
+
     <div id="export-container">
-        <h2>Çalışma Özeti</h2>
-        <table>
+        <div class="export-header">
+            <h2 id="export-date">Tarih</h2>
+            <h3>Günlük Çalışma Raporu</h3>
+            <p><strong>Toplam Süre: <span id="export-total">00:00:00</span></strong></p>
+        </div>
+        <table style="width:100%; border: 1px solid #333;">
             <thead>
-                <tr>
-                    <th>Sıra</th>
-                    <th>Ders / Konu Adı</th>
-                    <th>Çalışma Süresi</th>
+                <tr style="background: #eee;">
+                    <th style="border: 1px solid #333; padding: 5px;">Konu</th>
+                    <th style="border: 1px solid #333; padding: 5px;">Süre</th>
                 </tr>
             </thead>
-            <tbody id="export-table-body">
-                </tbody>
+            <tbody id="export-table-body"></tbody>
         </table>
     </div>
 
     <script>
-        // Durum Değişkenleri
         let timerInterval = null;
-        let elapsedSeconds = 0;
-        let isRunning = false;
+        let elapsedSeconds = parseInt(localStorage.getItem('elapsedSeconds')) || 0;
+        let isRunning = localStorage.getItem('isRunning') === 'true';
+        let records = JSON.parse(localStorage.getItem('records')) || [];
         
-        // Tüm kayıtların tutulduğu asıl veri dizisi
-        const records = [];
-
-        // DOM Elementleri
         const display = document.getElementById('time-display');
+        const totalDisplay = document.getElementById('total-time-display');
         const taskInput = document.getElementById('task-input');
         const visibleTableBody = document.getElementById('visible-table-body');
-        const exportTableBody = document.getElementById('export-table-body');
 
-        // Zamanı HH:MM:SS formatına çeviren yardımcı fonksiyon
+        // Modal Elementleri
+        const modalOverlay = document.getElementById('custom-modal');
+        const modalMessage = document.getElementById('modal-message');
+        const btnCancel = document.getElementById('modal-btn-cancel');
+        const btnConfirm = document.getElementById('modal-btn-confirm');
+        let currentConfirmAction = null;
+
+        // Modal Gösterme Fonksiyonu
+        function showModal(message, type, actionCallback) {
+            modalMessage.textContent = message;
+            modalOverlay.style.display = 'flex';
+            currentConfirmAction = actionCallback;
+            
+            if (type === 'alert') {
+                btnCancel.style.display = 'none';
+                btnConfirm.textContent = 'Tamam';
+                btnConfirm.className = 'btn-modal btn-ok';
+            } else {
+                btnCancel.style.display = 'inline-block';
+                btnConfirm.textContent = type === 'delete' ? 'Sil' : 'Evet';
+                btnConfirm.className = 'btn-modal btn-confirm';
+            }
+        }
+
+        // Modal Kapatma Fonksiyonu
+        function closeModal() {
+            modalOverlay.style.display = 'none';
+            currentConfirmAction = null;
+        }
+
+        btnCancel.addEventListener('click', closeModal);
+        btnConfirm.addEventListener('click', () => {
+            if (currentConfirmAction) currentConfirmAction();
+            closeModal();
+        });
+
         function formatTime(seconds) {
             const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
             const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
@@ -192,115 +298,150 @@
             return `${h}:${m}:${s}`;
         }
 
-        function updateDisplay() {
-            display.textContent = formatTime(elapsedSeconds);
+        function calculateTotalSeconds() {
+            return records.reduce((acc, curr) => acc + curr.rawSeconds, 0);
         }
 
-        // Kronometre Kontrolleri
+        function updateUI() {
+            display.textContent = formatTime(elapsedSeconds);
+            totalDisplay.textContent = formatTime(calculateTotalSeconds());
+            renderTable();
+        }
+
+        function saveData() {
+            localStorage.setItem('elapsedSeconds', elapsedSeconds);
+            localStorage.setItem('isRunning', isRunning);
+            localStorage.setItem('records', JSON.stringify(records));
+            localStorage.setItem('lastTimestamp', Date.now());
+        }
+
+        function initTimer() {
+            if (isRunning) {
+                const lastTimestamp = parseInt(localStorage.getItem('lastTimestamp'));
+                if (lastTimestamp) {
+                    const gap = Math.floor((Date.now() - lastTimestamp) / 1000);
+                    elapsedSeconds += gap;
+                }
+                startTimerLogic();
+            }
+            updateUI();
+        }
+
+        function startTimerLogic() {
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                elapsedSeconds++;
+                display.textContent = formatTime(elapsedSeconds);
+                saveData();
+            }, 1000);
+        }
+
         document.getElementById('btn-start').addEventListener('click', () => {
             if (!isRunning) {
                 isRunning = true;
-                timerInterval = setInterval(() => {
-                    elapsedSeconds++;
-                    updateDisplay();
-                }, 1000);
+                startTimerLogic();
+                saveData();
             }
         });
 
         document.getElementById('btn-pause').addEventListener('click', () => {
-            if (isRunning) {
-                isRunning = false;
-                clearInterval(timerInterval);
-            }
+            isRunning = false;
+            clearInterval(timerInterval);
+            saveData();
         });
 
-        // Kaydetme İşlemi
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            showModal("Sayacı sıfırlamak istediğinize emin misiniz?", "confirm", () => {
+                elapsedSeconds = 0;
+                isRunning = false;
+                clearInterval(timerInterval);
+                updateUI();
+                saveData();
+            });
+        });
+
         document.getElementById('btn-save').addEventListener('click', () => {
             const taskName = taskInput.value.trim();
-            
-            if (taskName === "") {
-                alert("Lütfen bir ders veya konu adı giriniz.");
+            if (!taskName) {
+                showModal("Lütfen bir konu başlığı giriniz.", "alert");
                 return;
             }
             if (elapsedSeconds === 0) {
-                alert("Kaydedilecek süre 0 olamaz. Lütfen kronometreyi başlatın.");
+                showModal("Kaydedilecek süre 0 olamaz. Lütfen sayacı başlatın.", "alert");
                 return;
             }
 
-            // Arka plandaki diziye ekleme işlemi
-            records.push({
-                name: taskName,
-                duration: formatTime(elapsedSeconds)
-            });
-
-            // Görünen tabloyu (maks. 5 satır) güncelle
-            renderVisibleTable();
-
-            // Sayacı sıfırlama işlemleri
+            // Sayacı durdurma ve sıfırlama işlemi eklendi
             isRunning = false;
             clearInterval(timerInterval);
+
+            records.push({
+                id: Date.now(),
+                name: taskName,
+                duration: formatTime(elapsedSeconds),
+                rawSeconds: elapsedSeconds
+            });
+
             elapsedSeconds = 0;
-            updateDisplay();
             taskInput.value = '';
+            updateUI();
+            saveData();
         });
 
-        // Ekranda görünen 5 satırlık tabloyu güncelleme
-        function renderVisibleTable() {
+        function renderTable() {
             visibleTableBody.innerHTML = '';
+            const lastFive = records.slice(-5).reverse();
             
-            // Veri yapısının sadece son 5 elemanını alma
-            const lastFiveRecords = records.slice(-5);
-            
-            lastFiveRecords.forEach(record => {
+            lastFive.forEach((record) => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${record.name}</td>
                     <td>${record.duration}</td>
+                    <td><button class="delete-btn" onclick="deleteRecord(${record.id})">X</button></td>
                 `;
                 visibleTableBody.appendChild(row);
             });
         }
 
-        // Günün Özeti (Resim olarak indirme) İşlemi
+        window.deleteRecord = function(id) {
+            showModal("Bu kaydı silmek istediğinize emin misiniz?", "delete", () => {
+                records = records.filter(r => r.id !== id);
+                updateUI();
+                saveData();
+            });
+        };
+
         document.getElementById('btn-summary').addEventListener('click', () => {
             if (records.length === 0) {
-                alert("Henüz kaydedilmiş bir çalışma bulunmamaktadır.");
+                showModal("Henüz kaydedilmiş bir çalışma bulunmamaktadır.", "alert");
                 return;
             }
 
-            // Gizli export tablosunu tüm kayıtlar ile doldurma
-            exportTableBody.innerHTML = '';
-            records.forEach((record, index) => {
+            const simdi = new Date();
+            const tarihStr = simdi.toLocaleDateString('tr-TR').replace(/\./g, '-');
+            const tamTarih = simdi.toLocaleString('tr-TR');
+
+            document.getElementById('export-date').textContent = tamTarih;
+            document.getElementById('export-total').textContent = formatTime(calculateTotalSeconds());
+            
+            const exportTable = document.getElementById('export-table-body');
+            exportTable.innerHTML = '';
+            records.forEach(r => {
                 const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${index + 1}</td>
-                    <td>${record.name}</td>
-                    <td>${record.duration}</td>
-                `;
-                exportTableBody.appendChild(row);
+                row.innerHTML = `<td style="border:1px solid #333;padding:5px">${r.name}</td><td style="border:1px solid #333;padding:5px">${r.duration}</td>`;
+                exportTable.appendChild(row);
             });
 
-            const exportContainer = document.getElementById('export-container');
-
-            // html2canvas ile DOM elementini canvas (resim) formatına dönüştürme işlemi
-            html2canvas(exportContainer).then(canvas => {
-                // Canvas verisini PNG formatında veri URL'sine çevirme
-                const imgData = canvas.toDataURL('image/png');
-                
-                // İndirmeyi tetikleyecek sanal link oluşturma
-                const downloadLink = document.createElement('a');
-                downloadLink.href = imgData;
-                downloadLink.download = 'gunun_ozeti.png';
-                
-                document.body.appendChild(downloadLink);
-                downloadLink.click();
-                document.body.removeChild(downloadLink);
-            }).catch(error => {
-                console.error("Resim oluşturma işlemi başarısız oldu:", error);
-                alert("Özet oluşturulurken teknik bir hata meydana geldi.");
+            const target = document.getElementById('export-container');
+            html2canvas(target).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `calisma-${tarihStr}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
             });
         });
+
+        initTimer();
     </script>
 </body>
 </html>
-
