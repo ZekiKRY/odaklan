@@ -184,6 +184,24 @@
             color: #eb5757;
             margin-top: 5px;
         }
+          .AnaMenu {
+    position: fixed; /* Sayfaya sabitlenmez, içeriğe göre konumlanır */
+    bottom: 10px; /* Alt kenardan 10px yukarı */
+    left: 10px; /* Sol kenardan 10px sağa */
+    background-color: #1e561b; 
+    color: rgb(255, 255, 255); 
+    font-size: 15px; 
+    font-weight: bold; 
+    padding: 8px 12px; 
+    border-radius: 5px; 
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
+    z-index: 1000; 
+    text-align: center; 
+    cursor: pointer;
+
+    text-decoration: none; /* Alt çizgiyi kaldırır */
+    display: inline-block; /* Padding ve boyutların doğru çalışmasını sağlar */
+          }
     </style>
 </head>
 <body>
@@ -249,6 +267,10 @@
             <tbody id="export-table-body"></tbody>
         </table>
     </div>
+
+     <div>
+    <a class="AnaMenu" href="https://zekikry.github.io/Hesaplama_Sitesi/">Ana Sayfaya Dön</a>
+     </div>
 
     <script>
         let timerInterval = null;
