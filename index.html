@@ -3,12 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Odaklan</title>
+    <title>Gelişmiş Çalışma Takipçisi</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f0f2f5;
@@ -41,18 +39,20 @@
         }
 
         .timer-display {
-            font-size: clamp(2.5rem, 10vw, 3.5rem);
+            font-size: clamp(3.5rem, 15vw, 5rem);
             font-weight: bold;
-            margin-bottom: 15px;
+            margin-top: 10px;
+            margin-bottom: 25px;
             font-variant-numeric: tabular-nums;
             color: #2c3e50;
+            line-height: 1;
         }
 
         .controls {
             display: flex;
             gap: 5px;
             justify-content: center;
-            margin-bottom: 15px;
+            margin-bottom: 25px;
             flex-wrap: wrap;
         }
 
@@ -60,10 +60,12 @@
             display: flex;
             gap: 8px;
             margin-bottom: 20px;
+            width: 100%;
         }
 
         input[type="text"] {
             flex: 1;
+            min-width: 0;
             padding: 12px;
             border: 1px solid #ddd;
             border-radius: 6px;
@@ -78,6 +80,7 @@
             cursor: pointer;
             color: #fff;
             transition: opacity 0.2s;
+            flex-shrink: 0;
         }
 
         button:active { opacity: 0.7; }
@@ -86,104 +89,48 @@
         .btn-pause { background-color: #f2994a; }
         .btn-reset { background-color: #95a5a6; }
         .btn-save { background-color: #2d9cdb; }
+        .btn-done { background-color: #2ecc71; font-size: 18px; padding: 10px 12px; }
 
-        .table-container {
-            width: 100%;
-            overflow-x: auto;
-        }
+        .table-container { width: 100%; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+        th, td { border-bottom: 1px solid #eee; padding: 10px 5px; text-align: left; }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            font-size: 14px;
-        }
-
-        th, td {
-            border-bottom: 1px solid #eee;
-            padding: 10px 5px;
-            text-align: left;
-        }
-
-        .delete-btn {
-            background-color: #eb5757;
-            padding: 5px 8px;
-            border-radius: 4px;
-            font-weight: bold;
-            font-size: 12px;
-        }
+        .delete-btn { background-color: #eb5757; padding: 5px 8px; border-radius: 4px; font-weight: bold; }
 
         .summary-btn {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background-color: #8e44ad;
-            padding: 12px 20px;
-            border-radius: 30px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            z-index: 100;
+            position: fixed; bottom: 20px; right: 20px;
+            background-color: #8e44ad; padding: 12px 20px;
+            border-radius: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 100; font-weight: bold;
         }
 
-        /* Modal Tasarımı */
+        .AnaMenu {
+            position: fixed; bottom: 20px; left: 20px;
+            background-color: #1e561b; color: #fff;
+            font-size: 15px; font-weight: bold;
+            padding: 8px 12px; border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000; text-align: center;
+            cursor: pointer; text-decoration: none; display: inline-block;
+        }
+
         .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); display: none;
+            justify-content: center; align-items: center; z-index: 9999;
         }
         .modal-content {
-            background: #fff;
-            padding: 25px;
-            border-radius: 10px;
-            text-align: center;
-            max-width: 320px;
-            width: 90%;
+            background: #fff; padding: 25px; border-radius: 10px;
+            text-align: center; max-width: 320px; width: 90%;
             box-shadow: 0 5px 25px rgba(0,0,0,0.2);
         }
-        .modal-message {
-            margin-bottom: 20px;
-            font-size: 16px;
-            color: #333;
-        }
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
-        .btn-modal {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            color: #fff;
-            font-size: 14px;
-        }
-        .btn-cancel { background-color: #95a5a6; }
-        .btn-confirm { background-color: #eb5757; }
-        .btn-ok { background-color: #2d9cdb; }
+        .modal-message { margin-bottom: 20px; font-size: 16px; color: #333; }
 
-        /* Export Tasarımı */
         #export-container {
-            position: absolute;
-            left: -9999px;
-            top: 0;
-            background-color: white;
-            padding: 30px;
-            width: 500px;
+            position: absolute; left: -9999px; top: 0;
+            background-color: white; padding: 30px; width: 500px;
         }
-        .export-header {
-            text-align: center;
-            border-bottom: 2px solid #333;
-            margin-bottom: 15px;
-        }
-        .warning-text {
-            font-size: 11px;
-            color: #eb5757;
-            margin-top: 5px;
-        }
+        .export-header { text-align: center; border-bottom: 2px solid #333; margin-bottom: 15px; }
     </style>
 </head>
 <body>
@@ -203,6 +150,7 @@
 
         <div class="input-group">
             <input type="text" id="task-input" placeholder="Konu başlığı...">
+            <button id="btn-done" class="btn-done" title="Klavyeyi Kapat">&#10004;</button>
             <button class="btn-save" id="btn-save">Kaydet</button>
         </div>
 
@@ -221,23 +169,25 @@
     </div>
 
     <button class="summary-btn" id="btn-summary">Günün Özeti</button>
+    <a class="AnaMenu" href="https://zekikry.github.io/Hesaplama_Sitesi/">Ana Sayfaya Dön</a>
 
+    <!-- Dinamik Uyarı/Onay Modalı -->
     <div id="custom-modal" class="modal-overlay">
         <div class="modal-content">
             <div id="modal-message" class="modal-message">Uyarı Metni</div>
-            <div class="modal-buttons">
-                <button id="modal-btn-cancel" class="btn-modal btn-cancel">Vazgeç</button>
-                <button id="modal-btn-confirm" class="btn-modal"></button>
+            <div style="display:flex; gap:10px; justify-content:center; margin-top: 15px;">
+                <button id="modal-btn-cancel" style="background:#95a5a6; padding: 8px 16px; border:none; border-radius:6px; color:#fff; cursor:pointer;">Vazgeç</button>
+                <button id="modal-btn-confirm" style="background:#eb5757; padding: 8px 16px; border:none; border-radius:6px; color:#fff; cursor:pointer;">Evet</button>
             </div>
         </div>
     </div>
 
+    <!-- PNG Şablonu -->
     <div id="export-container">
         <div class="export-header">
             <h2 id="export-date">Tarih</h2>
             <h3>Günlük Çalışma Raporu</h3>
             <p><strong>Toplam Süre: <span id="export-total">00:00:00</span></strong></p>
-            <div id="export-limit-warning" class="warning-text"></div>
         </div>
         <table style="width:100%; border: 1px solid #333;">
             <thead>
@@ -251,50 +201,70 @@
     </div>
 
     <script>
+        /* Güvenlik (XSS) Filtresi */
+        function escapeHTML(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        /* Güvenli Okuma Fonksiyonları */
+        function getSafeJSON(key, def) {
+            try { const d = localStorage.getItem(key); return d ? JSON.parse(d) : def; } 
+            catch(e) { localStorage.removeItem(key); return def; }
+        }
+
+        function getSafeInt(key, def) {
+            const raw = localStorage.getItem(key);
+            if (raw === null || raw === "undefined" || raw === "NaN") return def;
+            const parsed = parseInt(raw, 10);
+            return isNaN(parsed) ? def : parsed;
+        }
+
+        // Ana Değişkenler
         let timerInterval = null;
-        let elapsedSeconds = parseInt(localStorage.getItem('elapsedSeconds')) || 0;
+        let elapsedSeconds = getSafeInt('elapsedSeconds', 0);
         let isRunning = localStorage.getItem('isRunning') === 'true';
-        let records = JSON.parse(localStorage.getItem('records')) || [];
+        let records = getSafeJSON('records', []);
         
-        // Zaman ölçümü için mutlak referans noktası
-        let startTime = parseInt(localStorage.getItem('startTime')) || null;
+        // Zaman Uyuşmazlığı Koruması
+        let rawStartTime = localStorage.getItem('startTime');
+        let startTime = (rawStartTime && rawStartTime !== "null" && rawStartTime !== "undefined") ? parseInt(rawStartTime, 10) : null;
+        if (isNaN(startTime)) startTime = null;
 
         const display = document.getElementById('time-display');
         const totalDisplay = document.getElementById('total-time-display');
         const taskInput = document.getElementById('task-input');
         const visibleTableBody = document.getElementById('visible-table-body');
-
         const modalOverlay = document.getElementById('custom-modal');
-        const modalMessage = document.getElementById('modal-message');
-        const btnCancel = document.getElementById('modal-btn-cancel');
-        const btnConfirm = document.getElementById('modal-btn-confirm');
+
         let currentConfirmAction = null;
 
-        function showModal(message, type, actionCallback) {
-            modalMessage.textContent = message;
+        // Onay (İki Butonlu) Modalı
+        function showConfirm(message, actionCallback) {
+            document.getElementById('modal-message').textContent = message;
+            document.getElementById('modal-btn-cancel').style.display = 'inline-block';
+            document.getElementById('modal-btn-confirm').textContent = 'Evet';
             modalOverlay.style.display = 'flex';
             currentConfirmAction = actionCallback;
-            
-            if (type === 'alert') {
-                btnCancel.style.display = 'none';
-                btnConfirm.textContent = 'Tamam';
-                btnConfirm.className = 'btn-modal btn-ok';
-            } else {
-                btnCancel.style.display = 'inline-block';
-                btnConfirm.textContent = type === 'delete' ? 'Sil' : 'Evet';
-                btnConfirm.className = 'btn-modal btn-confirm';
-            }
         }
 
-        function closeModal() {
-            modalOverlay.style.display = 'none';
+        // Sadece Bilgi (Tek Butonlu) Modalı
+        function showAlert(message) {
+            document.getElementById('modal-message').textContent = message;
+            document.getElementById('modal-btn-cancel').style.display = 'none';
+            document.getElementById('modal-btn-confirm').textContent = 'Tamam';
+            modalOverlay.style.display = 'flex';
             currentConfirmAction = null;
         }
 
-        btnCancel.addEventListener('click', closeModal);
-        btnConfirm.addEventListener('click', () => {
+        document.getElementById('modal-btn-cancel').addEventListener('click', () => { modalOverlay.style.display = 'none'; });
+        document.getElementById('modal-btn-confirm').addEventListener('click', () => {
             if (currentConfirmAction) currentConfirmAction();
-            closeModal();
+            modalOverlay.style.display = 'none';
         });
 
         function formatTime(seconds) {
@@ -305,55 +275,51 @@
         }
 
         function calculateTotalSeconds() {
-            return records.reduce((acc, curr) => acc + curr.rawSeconds, 0);
+            return records.reduce((acc, curr) => acc + (curr.rawSeconds || 0), 0);
         }
 
         function updateUI() {
             display.textContent = formatTime(elapsedSeconds);
             totalDisplay.textContent = formatTime(calculateTotalSeconds());
-            renderTable();
+            
+            visibleTableBody.innerHTML = '';
+            records.slice(-5).reverse().forEach((record) => {
+                const tr = document.createElement('tr');
+                const safeName = escapeHTML(record.name);
+                tr.innerHTML = `<td>${safeName}</td><td>${record.duration}</td><td><button class="delete-btn" onclick="deleteRecord(${record.id})">X</button></td>`;
+                visibleTableBody.appendChild(tr);
+            });
         }
 
-        // Depolama Kotası Koruma Mekanizması
         function saveData() {
             try {
-                localStorage.setItem('elapsedSeconds', elapsedSeconds);
-                localStorage.setItem('isRunning', isRunning);
+                localStorage.setItem('elapsedSeconds', elapsedSeconds.toString());
+                localStorage.setItem('isRunning', isRunning.toString());
                 localStorage.setItem('records', JSON.stringify(records));
-                if (startTime) {
-                    localStorage.setItem('startTime', startTime);
+                if (startTime !== null) {
+                    localStorage.setItem('startTime', startTime.toString());
                 } else {
                     localStorage.removeItem('startTime');
                 }
             } catch (error) {
                 if (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
-                    showModal("Depolama alanı sınırına ulaşıldı. Eski kayıtların %20'si silinerek yer açılıyor.", "alert");
-                    // Eski kayıtları silerek yer aç
-                    const silinecekMiktar = Math.max(1, Math.floor(records.length * 0.2));
-                    records = records.slice(silinecekMiktar);
-                    saveData(); // Rotasyon sonrası tekrar dene
-                } else {
-                    console.error("Veri kaydetme hatası:", error);
+                    showAlert("Depolama sınırı aşıldı. Eski kayıtların bir kısmı siliniyor.");
+                    records = records.slice(Math.max(1, Math.floor(records.length * 0.2)));
+                    saveData(); 
                 }
             }
         }
 
-        function initTimer() {
-            if (isRunning) {
-                if (!startTime) {
-                    startTime = Date.now() - (elapsedSeconds * 1000);
-                }
-                startTimerLogic();
-            }
-            updateUI();
-        }
+        window.deleteRecord = (id) => {
+            showConfirm("Bu kaydı silmek istediğinize emin misiniz?", () => {
+                records = records.filter(r => r.id !== id);
+                updateUI();
+                saveData();
+            });
+        };
 
-        // Mutlak Zaman Ölçümü (Arka plan sekmelerinde doğru çalışması için)
         function startTimerLogic() {
-            if (!startTime) {
-                startTime = Date.now() - (elapsedSeconds * 1000);
-            }
-            
+            if (startTime === null) startTime = Date.now() - (elapsedSeconds * 1000);
             clearInterval(timerInterval);
             timerInterval = setInterval(() => {
                 elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
@@ -374,12 +340,12 @@
         document.getElementById('btn-pause').addEventListener('click', () => {
             isRunning = false;
             clearInterval(timerInterval);
-            startTime = null; // Bekletildiğinde referans zamanı sıfırlanır
+            startTime = null; 
             saveData();
         });
 
         document.getElementById('btn-reset').addEventListener('click', () => {
-            showModal("Sayacı sıfırlamak istediğinize emin misiniz?", "confirm", () => {
+            showConfirm("Sayacı sıfırlamak istediğinize emin misiniz?", () => {
                 elapsedSeconds = 0;
                 isRunning = false;
                 startTime = null;
@@ -389,16 +355,16 @@
             });
         });
 
+        document.getElementById('btn-done').addEventListener('click', () => {
+            taskInput.blur();
+        });
+
         document.getElementById('btn-save').addEventListener('click', () => {
+            taskInput.blur(); 
             const taskName = taskInput.value.trim();
-            if (!taskName) {
-                showModal("Lütfen bir konu başlığı giriniz.", "alert");
-                return;
-            }
-            if (elapsedSeconds === 0) {
-                showModal("Kaydedilecek süre 0 olamaz. Lütfen sayacı başlatın.", "alert");
-                return;
-            }
+            
+            if (!taskName) { showAlert("Lütfen bir konu başlığı giriniz."); return; }
+            if (elapsedSeconds === 0) { showAlert("Kaydedilecek süre 0 olamaz."); return; }
 
             isRunning = false;
             clearInterval(timerInterval);
@@ -417,47 +383,10 @@
             saveData();
         });
 
-        // XSS Korumalı Tablo Render İşlemi (DOM elementleri kullanılarak)
-        function renderTable() {
-            visibleTableBody.innerHTML = '';
-            const lastFive = records.slice(-5).reverse();
-            
-            lastFive.forEach((record) => {
-                const tr = document.createElement('tr');
-                
-                const tdName = document.createElement('td');
-                tdName.textContent = record.name; // Güvenli metin ekleme
-                
-                const tdDuration = document.createElement('td');
-                tdDuration.textContent = record.duration;
-                
-                const tdAction = document.createElement('td');
-                const btn = document.createElement('button');
-                btn.className = 'delete-btn';
-                btn.textContent = 'X';
-                btn.onclick = () => deleteRecord(record.id);
-                tdAction.appendChild(btn);
-
-                tr.appendChild(tdName);
-                tr.appendChild(tdDuration);
-                tr.appendChild(tdAction);
-
-                visibleTableBody.appendChild(tr);
-            });
-        }
-
-        window.deleteRecord = function(id) {
-            showModal("Bu kaydı silmek istediğinize emin misiniz?", "delete", () => {
-                records = records.filter(r => r.id !== id);
-                updateUI();
-                saveData();
-            });
-        };
-
-        // Görüntü Dışa Aktarımı İşlemi
+        // PNG Oluşturma
         document.getElementById('btn-summary').addEventListener('click', () => {
             if (records.length === 0) {
-                showModal("Henüz kaydedilmiş bir çalışma bulunmamaktadır.", "alert");
+                showAlert("Henüz kaydedilmiş bir çalışma bulunmamaktadır.");
                 return;
             }
 
@@ -471,49 +400,28 @@
             const exportTable = document.getElementById('export-table-body');
             exportTable.innerHTML = '';
             
-            // Performans (RAM/Canvas boyutu) koruması için sadece son 100 kaydı al
             const exportRecords = records.slice(-100);
-            const warningEl = document.getElementById('export-limit-warning');
-            
-            if (records.length > 100) {
-                warningEl.textContent = "* Görüntü performansı sınırları nedeniyle tablo sadece son 100 kaydı içermektedir.";
-            } else {
-                warningEl.textContent = "";
-            }
-
-            // XSS korumalı export tablosu oluşturma
             exportRecords.forEach(r => {
                 const tr = document.createElement('tr');
-                
-                const tdName = document.createElement('td');
-                tdName.style.border = '1px solid #333';
-                tdName.style.padding = '5px';
-                tdName.textContent = r.name;
-                
-                const tdDuration = document.createElement('td');
-                tdDuration.style.border = '1px solid #333';
-                tdDuration.style.padding = '5px';
-                tdDuration.textContent = r.duration;
-                
-                tr.appendChild(tdName);
-                tr.appendChild(tdDuration);
+                const safeName = escapeHTML(r.name);
+                tr.innerHTML = `<td style="border:1px solid #333;padding:5px">${safeName}</td><td style="border:1px solid #333;padding:5px">${r.duration}</td>`;
                 exportTable.appendChild(tr);
             });
 
-            const target = document.getElementById('export-container');
-            
-            html2canvas(target).then(canvas => {
+            html2canvas(document.getElementById('export-container')).then(canvas => {
                 const link = document.createElement('a');
                 link.download = `calisma-${tarihStr}.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();
             }).catch(error => {
-                showModal("Görüntü oluşturulurken bellek (RAM) veya teknik bir hata oluştu.", "alert");
-                console.error("html2canvas hatası:", error);
+                showAlert("Görüntü oluşturulurken teknik bir hata oluştu.");
+                console.error(error);
             });
         });
 
-        initTimer();
+        // Başlangıç Durumu
+        if (isRunning) { startTimerLogic(); }
+        updateUI();
     </script>
 </body>
 </html>
